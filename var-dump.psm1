@@ -100,8 +100,8 @@ function Show-ArrayStructure {
 		Write-Output "Count:   $($Variable.Count)"
 		ForEach($Key in $Array)
 		{
-			Write-Output ( "`n`r$TabsString[$i]: $($Key.GetTypeData().Name)" )
-			Show-ArrayStructure $Key
+			Write-Output ( "`n`r$TabsString[$i]: $($Key.GetType().Name)" )
+			Show-ArrayStructure $Key -Tabs ($Tabs + 1)
 			$i += 1
 		}
 	}
@@ -197,10 +197,15 @@ function Show-Variable {
 
 				#Misc
 				"FileInfo" { Show-FileInfo $Variable }
+				"DirectoryInfo" { ($Variable | Out-String).Trim() | Write-Output }
 
 				default {
-						Write-Output "No specific instructions found.`n`rTable:"
-						(Format-Table $Variable | Out-String).Trim() | Write-Output
+						Write-Output "No specific instructions found."
+						try
+						{
+							Write-Output "`n`rTable:"
+							(Format-Table $Variable | Out-String).Trim() | Write-Output
+						} catch {}
 						Write-Output "`n`rOut-String:"
 						($Variable | Out-String).Trim() | Write-Output
 					}
