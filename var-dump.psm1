@@ -56,6 +56,57 @@ function Show-String {
 	}
 }
 
+function Show-FileInfo {
+	[CmdletBinding()]
+	Param(
+		[Parameter(
+			ValueFromPipeline = $True
+			)]
+		$Files
+		)
+	Process {
+		($Files | Format-Table -HideTableHeaders -Property @{
+			Name = "Directory";
+			#Width = 24;
+			Expression = {$_.Directory};
+			Alignment = "Right"
+		}, @{
+			Name = "Name";
+			#Width = 48;
+			Expression = {$_.Name};
+			Alignment = "Left"
+		} | Out-String).Trim() | Write-Output
+	}
+}
+
+function Show-ArrayStructure {
+	[CmdletBinding()]
+	Param(
+		[Parameter(
+			ValueFromPipeline = $True
+			)]
+		$Array,
+
+		[Int]$Tabs = 0
+		)
+	Begin {
+		$TabsString = ""
+		ForEach($i in (0..$Tabs)) {
+			$Tabs += "    "
+		}
+	}
+
+	Process {
+		Write-Output "Count:   $($Variable.Count)"
+		ForEach($Key in $Array)
+		{
+			Write-Output ( "`n`r$TabsString[$i]: $($Key.GetTypeData().Name)" )
+			Show-ArrayStructure $Key
+			$i += 1
+		}
+	}
+}
+
 function Show-Array {
 	[CmdletBinding()]
 	Param(
@@ -103,13 +154,13 @@ function Show-Variable {
 		Else
 		{
 			$Type =  $Variable.GetType()
-			If( $Short )
+			If( $Short -and ! $Verbose )
 			{
 				Write-Output ($Type.Name)
 			}
 			Else
 			{
-				$Type | Format-Table | Write-Output
+				($Type | Format-Table | Out-String).Trim() | Write-Output
 			}
 
 			Switch( $Type.Name )
@@ -138,16 +189,20 @@ function Show-Variable {
 				"String" { Show-String $Variable }
 
 				#Arrays
-				"PSCustomObject" { $Variable | Out-String | Write-Output }
+				"PSCustomObject" { (Format-Table $Variable | Out-String).Trim() | Write-Output }
 				"Hashtable" { Show-Array $Variable }
 				"Array" { Show-Array $Variable }
 				"Object[]" { Show-Array $Variable }
+				"ArrayList" { Show-Array $Variable }
+
+				#Misc
+				"FileInfo" { Show-FileInfo $Variable }
 
 				default {
 						Write-Output "No specific instructions found.`n`rTable:"
-						$Variable | Format-Table | Write-Output
+						(Format-Table $Variable | Out-String).Trim() | Write-Output
 						Write-Output "`n`rOut-String:"
-						$Variable | Out-String | Write-Output
+						($Variable | Out-String).Trim() | Write-Output
 					}
 			}
 		}
