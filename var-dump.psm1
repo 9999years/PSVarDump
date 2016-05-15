@@ -65,17 +65,7 @@ function Show-FileInfo {
 		$Files
 		)
 	Process {
-		($Files | Format-Table -HideTableHeaders -Property @{
-			Name = "Directory";
-			#Width = 24;
-			Expression = {$_.Directory};
-			Alignment = "Right"
-		}, @{
-			Name = "Name";
-			#Width = 48;
-			Expression = {$_.Name};
-			Alignment = "Left"
-		} | Out-String).Trim() | Write-Output
+		($Files | Format-Table -HideTableHeaders -Property FullName | Out-String).Trim() | Write-Output
 	}
 }
 
@@ -210,6 +200,7 @@ function Show-Variable {
 						($Variable | Out-String).Trim() | Write-Output
 					}
 			}
+			(Select-Object -InputObject $Variable -Property * | Out-String).Trim() | Write-Verbose
 		}
 	}
 }
