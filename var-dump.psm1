@@ -81,17 +81,21 @@ function Show-ArrayStructure {
 		)
 	Begin {
 		$TabsString = ""
-		ForEach($i in (0..$Tabs)) {
-			$Tabs += "    "
+		For($i = 0; $i -lt $Tabs; $i++) {
+			$TabsString += "  "
 		}
 	}
 
 	Process {
-		Write-Output "Count:   $($Variable.Count)"
+		Write-Output "$($TabsString)Count:   $($Array.Count)"
+		$i = 0
 		ForEach($Key in $Array)
 		{
-			Write-Output ( "`n`r$TabsString[$i]: $($Key.GetType().Name)" )
-			Show-ArrayStructure $Key -Tabs ($Tabs + 1)
+			Write-Output ( "$($TabsString)[$i]: $($Key.GetType().Name)" )
+			If($Key.Count -gt 1)
+			{
+				Show-ArrayStructure ($Key) -Tabs ($Tabs + 1)
+			}
 			$i += 1
 		}
 	}
