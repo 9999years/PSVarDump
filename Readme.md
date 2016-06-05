@@ -11,6 +11,8 @@ Currently supported types are:
 * Arrays: `PSCustomObject`, `Hashtable`, `Array`, `Object[]`, and `ArrayList`,
 * Misc: `String`, `FileInfo`, `DirectoryInfo`, and `MatchInfo`
 
+Additionally, when a type isn’t recognized, some default instructions exist (namely, passing through `Out-String`, `Format-Table`, and `Select-Object -Property *`).
+
 Don’t see a type you commonly work with there? Open an issue or send a pull request!
 
 Examples:
