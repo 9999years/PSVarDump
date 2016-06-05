@@ -124,6 +124,19 @@ function Show-Array {
 	}
 }
 
+function Show-Properties {
+	[CmdletBinding()]
+	Param(
+		[Parameter(
+			ValueFromPipeline = $True
+			)]
+		$Variable
+		)
+	Process {
+		(Select-Object -InputObject $Variable -Property * | Out-String).Trim() | Write-Output
+	}
+}
+
 function Show-Variable {
 	[CmdletBinding()]
 	Param(
@@ -192,9 +205,10 @@ function Show-Variable {
 				#Misc
 				"FileInfo" { Show-FileInfo $Variable }
 				"DirectoryInfo" { ($Variable | Out-String).Trim() | Write-Output }
+				"MatchInfo" { $Variable | Show-Properties }
 
-				default {
-						Write-Output "No specific instructions found."
+				Default {
+						Write-Output "No specific instructions found for this type."
 						try
 						{
 							Write-Output "`n`rTable:"
@@ -202,9 +216,11 @@ function Show-Variable {
 						} catch {}
 						Write-Output "`n`rOut-String:"
 						($Variable | Out-String).Trim() | Write-Output
+						Write-Output "`n`rProperties:"
+						$Variable | Show-Properties
 					}
 			}
-			(Select-Object -InputObject $Variable -Property * | Out-String).Trim() | Write-Verbose
+			Show-Properties | Write-Verbose
 		}
 	}
 }
