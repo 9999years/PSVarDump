@@ -67,6 +67,8 @@ Count:   4
 
 Pipe or pass anything into `Show-Variable` to get a detailed output.
 
+Sometimes `-Short` will give briefer output but its use is mostly internal right now. In the future I might expand its functionality.
+
 I recommend adding `New-Alias show Show-Variable` to your PowerShell profile
 for brevity’s sake.
 
@@ -78,7 +80,7 @@ match any of these types, although it may feature duplicate information.)
 * Integers: `UInt64`, `UInt32`, `UInt16`, `Int32`, `Int64`, `Int16`, `Short`,
   `UShort`, `Byte`, and `SByte`
 * Floats: `Single`, `Float`, `Double`, `Long`, and `Decimal`
-* Arrays: `PSCustomObject`, `Hashtable`, `Array`, `Object[]`, and `ArrayList`,
+* Arrays: `PSCustomObject`, `Hashtable`, `Array`, `Object[]`, `ArrayList`, and other types where `.GetType().IsArray -eq $True`
 * Misc: `String`, `FileInfo`, `DirectoryInfo`, and `MatchInfo`
 
 Don’t see a type you commonly work with there? Open an issue or send a pull

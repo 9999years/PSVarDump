@@ -7,20 +7,22 @@ function Show-Hex {
 		$Hex = 0
 		)
 	Process {
-		Write-Output ("Hex:     0x{0:x}" -f [Int64]$Hex)
+		Write-Output ("Hex (Int):  0x{0:x}" -f [Int64]$Hex)
 	}
 }
 
-function Show-Int {
+function Show-Number {
 	[CmdletBinding()]
 	Param(
 		[Parameter(
 			ValueFromPipeline = $True
 			)]
-		$Int = 0
+		$Number = 0
 		)
 	Process {
-		Write-Output ("Decimal: {0:G}`n`r$(Show-Hex $Int)" -f $Int)
+		Write-Output ("Decimal:    {0:G}" -f $Number)
+		Write-Output ("Scientific: {0:e}" -f $Number)
+		Show-Hex $Number
 	}
 }
 
@@ -68,7 +70,7 @@ function Show-FileInfo {
 	}
 }
 
-function Show-ArrayStructure {
+function Show-Array {
 	[CmdletBinding()]
 	Param(
 		[Parameter(
@@ -76,46 +78,26 @@ function Show-ArrayStructure {
 			)]
 		$Array,
 
-		[Int]$Tabs = 0
+		[Int]$Tabs = 0,
+		[String]$Prefix = ""
 		)
 	Begin {
-		$TabsString = ""
-		For($i = 0; $i -lt $Tabs; $i++) {
-			$TabsString += "    "
-		}
+		$TabsString = "    "*$Tabs
 	}
 
 	Process {
-		Write-Output "$($TabsString)Count:   $($Array.Count)"
-		$i = 0
-		ForEach($Key in $Array) {
-			Write-Output ( "$($TabsString)[$i]: $Key ($($Key.GetType().Name))" )
-			If($Key.Count -gt 1) {
-				Show-ArrayStructure ($Key) -Tabs ($Tabs + 1)
+		If($Array.Count -le 1) {
+			Write-Output "(Input variable is not an array)"
+			Break
+		}
+
+		For($i = 0; $i -lt $Array.Count; $i++) {
+			Write-Output ( "$($TabsString)$Prefix[$i]: $($Array[$i]) ($($Array[$i].GetType().Name))" )
+			If($Array[$i].Count -gt 1) {
+				Show-Array ($Array[$i]) -Tabs ($Tabs + 1) -Prefix "[$i]"
+			} Else {
+				"`n$(Show-Variable $Array[$i] -Short)" | Write-Verbose
 			}
-			$i += 1
-		}
-	}
-}
-
-function Show-Array {
-	[CmdletBinding()]
-	Param(
-		[Parameter(
-			ValueFromPipeline = $True
-			)]
-		$Array
-		)
-	Begin{
-		$i = 0
-	}
-
-	Process {
-		Write-Output "Count:   $($Variable.Count)"
-		ForEach($Key in $Array) {
-			Write-Output ( "`n`r[$i]:" )
-			Show-Variable $Key -Short
-			$i += 1
 		}
 	}
 }
@@ -130,6 +112,28 @@ function Show-Properties {
 		)
 	Process {
 		(Select-Object -InputObject $Variable -Property * | Out-String).Trim() | Write-Output
+	}
+}
+
+function Test-Match {
+	[CmdletBinding()]
+	Param(
+		$Match,
+
+		[Parameter(
+			ValueFromPipeline = $True
+			)]
+		$Array
+	)
+
+	Process {
+		$Matched = $False
+		$Array | ForEach-Object {
+			If($_ -eq $Match) {
+				$Matched = $True
+			}
+		}
+		Return $Matched
 	}
 }
 
@@ -149,68 +153,74 @@ function Show-Variable {
 		[Switch]$Short
 		)
 	Process {
-		$Variable = $Variable[0]
 		If( $Variable -eq $Null ) {
 			Write-Output "Null"
+		} ElseIf( $Variable.Count -eq 0) {
+			Write-Output "Empty Array"
 		} Else {
+			$Variable = $Variable[0]
 			$Type =  $Variable.GetType()
-			If( $Short -and ! $Verbose ) {
-				Write-Output ($Type.Name)
-			} Else {
-				($Type | Format-Table | Out-String).Trim() | Write-Output
+			Write-Output "Type: $($Type.Name)"
+			If( ! $Short ) {
+				$Type | Show-Properties | Write-Verbose
 			}
 
-			Switch( $Type.Name ) {
-
-			#Int values:
-			{ "UInt64" -or
-			"UInt32" -or
-			"UInt16" -or
-			"Int32"  -or
-			"Int64"  -or
-			"Int16"  -or
-			"Short"  -or
-			"UShort" -or
-			"SByte"
-			} { Show-Int $Variable }
-
-			"Byte" { Show-Int $Variable
-				Show-Char $Variable }
-
-			#Float values:
-			{
-			"Single"  -or
-			"Float"   -or
-			"Double"  -or
-			"Long"    -or
-			"Decimal"
-			} { Show-Float $Variable }
-
-			#String
-			"String" { Show-String $Variable }
-
+			If(
+				(@("UInt64", "UInt32", "UInt16", "Int32", "Int64", "Int16", "Short", "UShort", "SByte") |
+				Test-Match $Type.Name) -eq $True
+			) {
+				Show-Number $Variable
+			}
+			ElseIf(
+				("Byte" |
+				Test-Match $Type.Name) -eq $True
+			) {
+				Show-Number $Variable
+				Show-Char $Variable
+			}
+			ElseIf(
+				(@("Single", "Float", "Double", "Long", "Decimal") |
+				Test-Match $Type.Name) -eq $True
+			) {
+				Show-Number $Variable
+			}
+			ElseIf(
+				("String" |
+				Test-Match $Type.Name) -eq $True
+			) {
+				Show-String $Variable
+			}
 			#Arrays
-			{
-			"Hashtable" -or
-			"Array"     -or
-			"Object[]"  -or
-			"ArrayList"
-			} {
-				If($Verbose) {
-					Show-Array $Variable
-				} Else {
-					Show-ArrayStructure $Variable
-				}
+			ElseIf(
+				#(@("Hashtable", "Array", "Object[]", "ArrayList") |
+				#Test-Match $Type.Name) -eq $True
+				$Type.IsArray -eq $True
+			) {
+				Show-Array $Variable
 			}
-
-			"PSCustomObject" { (Format-Table $Variable | Out-String).Trim() | Write-Output }
-
+			ElseIf(
+				("PSCustomObject" |
+				Test-Match $Type.Name) -eq $True
+			) {
+				(Format-Table $Variable | Out-String).Trim() | Write-Output
+			}
 			#Misc
-			"FileInfo" { Show-FileInfo $Variable }
-			"DirectoryInfo" { ($Variable | Out-String).Trim() | Write-Output }
-			"MatchInfo" { $Variable | Show-Properties }
-
-			Default {
+			ElseIf(
+				("FileInfo" | Test-Match $Type.Name) -eq $True
+			) {
+				Show-FileInfo $Variable
+			}
+			ElseIf(
+				("DirectoryInfo" | Test-Match $Type.Name) -eq $True
+			) {
+				($Variable | Out-String).Trim() | Write-Output
+			}
+			ElseIf(
+				(@("MatchInfo", "RuntimeType") | Test-Match $Type.Name) -eq $True
+			) {
+				$Variable | Show-Properties
+			}
+			Else {
 				Write-Output "No specific instructions found for this type."
 				Try {
 					Write-Output "`n`rTable:"
@@ -220,7 +230,8 @@ function Show-Variable {
 				($Variable | Out-String).Trim() | Write-Output
 				Write-Output "`n`rProperties:"
 				$Variable | Show-Properties
-			}
+				Write-Output "`n`rStructure:"
+				Show-Array $Variable
 			}
 			Show-Properties | Write-Verbose
 		}
