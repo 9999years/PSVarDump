@@ -49,8 +49,7 @@ function Show-String {
 		Write-Output "Length:  $($String.Length)"
 		Write-Output "String: ``$($String)``"
 		$CharArray = $String.toCharArray()
-		ForEach($Char in $CharArray)
-		{
+		ForEach($Char in $CharArray) {
 			Show-Char $Char | Write-Verbose
 		}
 	}
@@ -82,18 +81,16 @@ function Show-ArrayStructure {
 	Begin {
 		$TabsString = ""
 		For($i = 0; $i -lt $Tabs; $i++) {
-			$TabsString += "  "
+			$TabsString += "    "
 		}
 	}
 
 	Process {
 		Write-Output "$($TabsString)Count:   $($Array.Count)"
 		$i = 0
-		ForEach($Key in $Array)
-		{
-			Write-Output ( "$($TabsString)[$i]: $($Key.GetType().Name)" )
-			If($Key.Count -gt 1)
-			{
+		ForEach($Key in $Array) {
+			Write-Output ( "$($TabsString)[$i]: $Key ($($Key.GetType().Name))" )
+			If($Key.Count -gt 1) {
 				Show-ArrayStructure ($Key) -Tabs ($Tabs + 1)
 			}
 			$i += 1
@@ -115,8 +112,7 @@ function Show-Array {
 
 	Process {
 		Write-Output "Count:   $($Variable.Count)"
-		ForEach($Key in $Array)
-		{
+		ForEach($Key in $Array) {
 			Write-Output ( "`n`r[$i]:" )
 			Show-Variable $Key -Short
 			$i += 1
@@ -154,71 +150,77 @@ function Show-Variable {
 		)
 	Process {
 		$Variable = $Variable[0]
-		If( $Variable -eq $Null )
-		{
+		If( $Variable -eq $Null ) {
 			Write-Output "Null"
-		}
-		Else
-		{
+		} Else {
 			$Type =  $Variable.GetType()
-			If( $Short -and ! $Verbose )
-			{
+			If( $Short -and ! $Verbose ) {
 				Write-Output ($Type.Name)
-			}
-			Else
-			{
+			} Else {
 				($Type | Format-Table | Out-String).Trim() | Write-Output
 			}
 
-			Switch( $Type.Name )
+			Switch( $Type.Name ) {
+
+			#Int values:
+			{ "UInt64" -or
+			"UInt32" -or
+			"UInt16" -or
+			"Int32"  -or
+			"Int64"  -or
+			"Int16"  -or
+			"Short"  -or
+			"UShort" -or
+			"SByte"
+			} { Show-Int $Variable }
+
+			"Byte" { Show-Int $Variable
+				Show-Char $Variable }
+
+			#Float values:
 			{
+			"Single"  -or
+			"Float"   -or
+			"Double"  -or
+			"Long"    -or
+			"Decimal"
+			} { Show-Float $Variable }
 
-				#Int values:
-				"UInt64" { Show-Int $Variable }
-				"UInt32" { Show-Int $Variable }
-				"UInt16" { Show-Int $Variable }
-				"Int32" { Show-Int $Variable }
-				"Int64" { Show-Int $Variable }
-				"Int16" { Show-Int $Variable }
-				"Short" { Show-Int $Variable }
-				"UShort" { Show-Int $Variable }
-				"Byte" { Show-Int $Variable
-						Show-Char $Variable }
-				"SByte" { Show-Int $Variable }
+			#String
+			"String" { Show-String $Variable }
 
-				#Float values:
-				"Single" { Show-Float $Variable }
-				"Float" { Show-Float $Variable }
-				"Double" { Show-Float $Variable }
-				"Long" { Show-Float $Variable }
-				"Decimal" { Show-Float $Variable }
+			#Arrays
+			{
+			"Hashtable" -or
+			"Array"     -or
+			"Object[]"  -or
+			"ArrayList"
+			} {
+				If($Verbose) {
+					Show-Array $Variable
+				} Else {
+					Show-ArrayStructure $Variable
+				}
+			}
 
-				"String" { Show-String $Variable }
+			"PSCustomObject" { (Format-Table $Variable | Out-String).Trim() | Write-Output }
 
-				#Arrays
-				"PSCustomObject" { (Format-Table $Variable | Out-String).Trim() | Write-Output }
-				"Hashtable" { Show-Array $Variable }
-				"Array" { Show-Array $Variable }
-				"Object[]" { Show-Array $Variable }
-				"ArrayList" { Show-Array $Variable }
+			#Misc
+			"FileInfo" { Show-FileInfo $Variable }
+			"DirectoryInfo" { ($Variable | Out-String).Trim() | Write-Output }
+			"MatchInfo" { $Variable | Show-Properties }
 
-				#Misc
-				"FileInfo" { Show-FileInfo $Variable }
-				"DirectoryInfo" { ($Variable | Out-String).Trim() | Write-Output }
-				"MatchInfo" { $Variable | Show-Properties }
-
-				Default {
-						Write-Output "No specific instructions found for this type."
-						try
-						{
-							Write-Output "`n`rTable:"
-							(Format-Table $Variable | Out-String).Trim() | Write-Output
-						} catch {}
-						Write-Output "`n`rOut-String:"
-						($Variable | Out-String).Trim() | Write-Output
-						Write-Output "`n`rProperties:"
-						$Variable | Show-Properties
-					}
+			Default {
+				Write-Output "No specific instructions found for this type."
+				Try {
+					Write-Output "`n`rTable:"
+					(Format-Table $Variable | Out-String).Trim() | Write-Output
+				} Catch {}
+				Write-Output "`n`rOut-String:"
+				($Variable | Out-String).Trim() | Write-Output
+				Write-Output "`n`rProperties:"
+				$Variable | Show-Properties
+			}
 			}
 			Show-Properties | Write-Verbose
 		}
