@@ -238,4 +238,4 @@ function Show-Variable {
 	}
 }
 
-New-Alias show Show-Variable
+New-Alias show Show-Variable -ErrorAction SilentlyContinue
